@@ -12,6 +12,10 @@ extension NWConnection: NetworkConnection {
     convenience init(settings: NetworkConnectionSettings) {
         let tcpOptions = NWProtocolTCP.Options()
         tcpOptions.connectionTimeout = settings.connectionTimeout
+        // DeepVNC patch: disable Nagle's algorithm. VNC sends many tiny input
+        // packets (clicks, keystrokes); with Nagle on they can sit up to ~40ms
+        // waiting to coalesce, which is felt directly as input lag.
+        tcpOptions.noDelay = true
 
         let connectionParameters = NWParameters(tls: nil,
                                                 tcp: tcpOptions)

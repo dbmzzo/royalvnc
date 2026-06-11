@@ -86,7 +86,11 @@ public final class VNCFramebuffer: NSObjectOrAnyObject {
 	let needsColorConversion: Bool
     
 #if canImport(IOSurface) && canImport(CoreVideo)
-    var ioSurface: IOSurface? {
+    // DeepVNC patch: exposed so the iOS client can present the framebuffer
+    // zero-copy by setting this surface as a CALayer's `contents`, instead of
+    // copying the whole surface into a CGImage every frame. Nil for non-
+    // IOSurface allocators (e.g. the malloc fallback).
+    public var ioSurface: IOSurface? {
         guard let surfaceAllocator = allocator as? VNCFramebufferIOSurfaceAllocator else {
             return nil
         }
