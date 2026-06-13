@@ -56,6 +56,13 @@ public extension VNCConnection {
 
 		public let frameEncodings: [VNCFrameEncodingType]
 
+		// DeepVNC patch: Tight compression level (1–10) and JPEG quality (0–9)
+		// requested from the server, instead of being hardcoded. Lower JPEG
+		// quality / higher compression trade image quality for far fewer bytes
+		// on a slow link.
+		public let compressionLevel: Int
+		public let jpegQuality: Int
+
 #if canImport(ObjectiveC)
 		@objc(frameEncodings)
 #endif
@@ -72,7 +79,9 @@ public extension VNCConnection {
 					inputMode: InputMode,
 					isClipboardRedirectionEnabled: Bool,
 					colorDepth: ColorDepth,
-					frameEncodings: [VNCFrameEncodingType]) {
+					frameEncodings: [VNCFrameEncodingType],
+					compressionLevel: Int = 6,
+					jpegQuality: Int = 6) {
 			self.isDebugLoggingEnabled = isDebugLoggingEnabled
 
 			self.hostname = hostname
@@ -89,6 +98,9 @@ public extension VNCConnection {
 
 			self.colorDepth = colorDepth
 			self.frameEncodings = frameEncodings
+
+			self.compressionLevel = compressionLevel
+			self.jpegQuality = jpegQuality
 		}
 
 #if canImport(ObjectiveC)

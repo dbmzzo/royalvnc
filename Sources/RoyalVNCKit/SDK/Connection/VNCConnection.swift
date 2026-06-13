@@ -91,10 +91,11 @@ public final class VNCConnection: NSObjectOrAnyObject {
 		let rawEncoding = VNCProtocol.RawEncoding()
 		let hextileEncoding = VNCProtocol.HextileEncoding(rawEncoding: rawEncoding)
 
-		let compressionLevelEncodingType = VNCPseudoEncodingType.compressionLevel6.rawValue
+		// DeepVNC patch: derive from settings instead of hardcoding level 6.
+		let compressionLevelEncodingType = VNCEncodingType(Int32(-257 + min(max(settings.compressionLevel, 1), 10)))
 		let compressionLevelEncoding = VNCProtocol.CompressionLevelEncoding(encodingType: compressionLevelEncodingType)
 
-		let jpegQualityLevelEncodingType = VNCPseudoEncodingType.jpegQualityLevel6.rawValue
+		let jpegQualityLevelEncodingType = VNCEncodingType(Int32(-32 + min(max(settings.jpegQuality, 0), 9)))
 		let jpegQualityLevelEncoding = VNCProtocol.JPEGQualityLevelEncoding(encodingType: jpegQualityLevelEncodingType)
 
 		let encs: Encodings = [
@@ -172,13 +173,12 @@ public final class VNCConnection: NSObjectOrAnyObject {
 			// TODO: Implement
 //			VNCPseudoEncodingType.extendedClipboard.rawValue,
             
-            // TODO: Make configurable
-			VNCPseudoEncodingType.compressionLevel6.rawValue
+            // DeepVNC patch: from settings instead of hardcoded level 6.
+			VNCEncodingType(Int32(-257 + min(max(settings.compressionLevel, 1), 10)))
 		])
 
 		if usesTightEncoding {
-            // TODO: Make configurable
-			encs.append(VNCPseudoEncodingType.jpegQualityLevel6.rawValue)
+			encs.append(VNCEncodingType(Int32(-32 + min(max(settings.jpegQuality, 0), 9))))
 		}
 
 		let uniqueEncs = encs.uniqued()
