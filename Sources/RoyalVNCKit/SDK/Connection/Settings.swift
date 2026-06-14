@@ -63,6 +63,14 @@ public extension VNCConnection {
 		public let compressionLevel: Int
 		public let jpegQuality: Int
 
+		// DeepVNC patch: opt into RFB continuous updates. When the server
+		// advertises support, the client sends EnableContinuousUpdates so the
+		// server then pushes framebuffer updates as the screen changes, instead
+		// of waiting for a FramebufferUpdateRequest before each one — removing a
+		// full network round-trip of latency from every frame. Off by default
+		// (preserves upstream request/response behavior).
+		public let isContinuousUpdatesEnabled: Bool
+
 #if canImport(ObjectiveC)
 		@objc(frameEncodings)
 #endif
@@ -81,7 +89,8 @@ public extension VNCConnection {
 					colorDepth: ColorDepth,
 					frameEncodings: [VNCFrameEncodingType],
 					compressionLevel: Int = 6,
-					jpegQuality: Int = 6) {
+					jpegQuality: Int = 6,
+					isContinuousUpdatesEnabled: Bool = false) {
 			self.isDebugLoggingEnabled = isDebugLoggingEnabled
 
 			self.hostname = hostname
@@ -101,6 +110,7 @@ public extension VNCConnection {
 
 			self.compressionLevel = compressionLevel
 			self.jpegQuality = jpegQuality
+			self.isContinuousUpdatesEnabled = isContinuousUpdatesEnabled
 		}
 
 #if canImport(ObjectiveC)

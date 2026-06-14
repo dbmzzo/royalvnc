@@ -63,7 +63,12 @@ private extension VNCConnection {
 		guard !state.disconnectRequested,
               connection.isReady,
 			  let message = clientToServerMessageQueue.dequeue() else {
-			try await Task.sleep(seconds: 0.01)
+			// DeepVNC patch: poll the send queue every 2ms instead of 10ms. The
+			// queue is drained as fast as messages arrive while it's non-empty;
+			// this only bounds how long an input event (tap/scroll/keypress)
+			// waits in an otherwise-idle queue before hitting the socket, so a
+			// shorter idle poll directly cuts input latency.
+			try await Task.sleep(seconds: 0.002)
 
 			return
 		}

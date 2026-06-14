@@ -135,6 +135,12 @@ private extension VNCConnection {
 			logger.logDebug("Disabling Continuous Updates")
 		}
 
-		try await sendFramebufferUpdateRequest()
+		// DeepVNC patch: turn continuous updates on the first time the server
+		// advertises support, so it pushes frames without a per-frame request.
+		if first, settings.isContinuousUpdatesEnabled {
+			try await sendEnableContinuousUpdates()
+		} else {
+			try await sendFramebufferUpdateRequest()
+		}
 	}
 }
