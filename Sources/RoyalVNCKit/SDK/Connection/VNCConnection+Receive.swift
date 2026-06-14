@@ -67,10 +67,22 @@ private extension VNCConnection {
 
 		logger.logDebug("Receiving Framebuffer Update")
 
+		// DeepVNC stats: time the receive+decode of this frame, and the idle gap
+		// since the previous one finished (≈ request round-trip on a non-CU link).
+		let startNanos = DispatchTime.now().uptimeNanoseconds
+		let gapMillis: Double? = lastFrameEndNanos == 0
+			? nil
+			: Double(startNanos &- lastFrameEndNanos) / 1_000_000
+
 		let framebufferUpdate = try await VNCProtocol.FramebufferUpdate.receive(connection: connection,
 																				framebuffer: framebuffer,
 																				encodings: encodings,
 																				logger: logger)
+
+		let endNanos = DispatchTime.now().uptimeNanoseconds
+		lastFrameEndNanos = endNanos
+		recordFrameTiming(receiveDecodeMillis: Double(endNanos &- startNanos) / 1_000_000,
+						  gapMillis: gapMillis)
 
 		logger.logDebug("Received Framebuffer Update: \(framebufferUpdate)")
 

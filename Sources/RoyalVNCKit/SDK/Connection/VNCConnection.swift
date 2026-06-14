@@ -41,8 +41,49 @@ public final class VNCConnection: NSObjectOrAnyObject {
 	@objc
 #endif
 	public let logger: VNCLogger
-    
+
     public let framebufferAllocator: VNCFramebufferAllocator?
+
+    // MARK: - DeepVNC live stats
+    //
+    // Lightweight per-frame metrics for the in-app performance HUD. Enough to
+    // tell whether a session is round-trip-bound (a big idle gap between frames,
+    // i.e. the client waiting on the request/response round trip) or throughput-
+    // bound (each frame slow to receive+decode over the link), and whether
+    // continuous updates actually engaged with this particular server.
+    public struct LiveStats: Sendable {
+        public var continuousUpdatesActive = false
+        public var framesDecoded: UInt64 = 0
+        public var avgReceiveDecodeMillis: Double = 0
+        public var avgGapMillis: Double = 0
+    }
+
+    private let statsLock = NSLock()
+    private var _stats = LiveStats()
+    /// Monotonic time the previous framebuffer update finished; receive-task only.
+    var lastFrameEndNanos: UInt64 = 0
+
+    public var liveStats: LiveStats {
+        statsLock.lock(); defer { statsLock.unlock() }
+        return _stats
+    }
+
+    /// Folds one frame's timing into the running averages (EMA, so the HUD
+    /// reads steadily). Called from the receive task.
+    func recordFrameTiming(receiveDecodeMillis: Double, gapMillis: Double?) {
+        statsLock.lock(); defer { statsLock.unlock() }
+        _stats.framesDecoded &+= 1
+        _stats.continuousUpdatesActive = state.areContinuousUpdatesEnabled
+        let a = 0.2
+        _stats.avgReceiveDecodeMillis = _stats.avgReceiveDecodeMillis == 0
+            ? receiveDecodeMillis
+            : _stats.avgReceiveDecodeMillis * (1 - a) + receiveDecodeMillis * a
+        if let gapMillis {
+            _stats.avgGapMillis = _stats.avgGapMillis == 0
+                ? gapMillis
+                : _stats.avgGapMillis * (1 - a) + gapMillis * a
+        }
+    }
 
 	// MARK: - Private Properties
 	private let queue = DispatchQueue(label: "com.royalapps.royalvnc.connectionqueue",
