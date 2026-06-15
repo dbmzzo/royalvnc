@@ -74,6 +74,15 @@ private extension VNCConnection {
 			? nil
 			: Double(startNanos &- lastFrameEndNanos) / 1_000_000
 
+		// DeepVNC: request the NEXT update *before* reading + decoding this one, so
+		// the server produces the next frame while we're still working on this
+		// one (request-ahead pipelining). macOS Screen Sharing has no continuous-
+		// updates support, so this is the only way to overlap its per-frame
+		// produce time with our receive/decode. Steady state keeps exactly one
+		// request outstanding — one per frame. (No-ops when continuous updates are
+		// active, since the server is already pushing.)
+		try await sendFramebufferUpdateRequest()
+
 		let framebufferUpdate = try await VNCProtocol.FramebufferUpdate.receive(connection: connection,
 																				framebuffer: framebuffer,
 																				encodings: encodings,
@@ -96,7 +105,7 @@ private extension VNCConnection {
 		try framebuffer.writeSurface()
 		*/
 
-		try await sendFramebufferUpdateRequest()
+		// Next update was already requested above (request-ahead pipelining).
 	}
 
 	func handleSetColourMapEntriesMessage() async throws {
