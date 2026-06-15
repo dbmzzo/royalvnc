@@ -122,6 +122,8 @@ private extension VNCConnection {
 			throw VNCError.authentication(.clientCouldNotDecideOnSecurityType)
 		}
 
+		recordSecurityType(chosenSecurityType.rawValue) // DeepVNC stats
+
 		try await sendAuthenticationData(securityType: chosenSecurityType)
 	}
 

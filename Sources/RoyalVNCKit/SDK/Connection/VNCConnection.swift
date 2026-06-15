@@ -56,6 +56,11 @@ public final class VNCConnection: NSObjectOrAnyObject {
         public var framesDecoded: UInt64 = 0
         public var avgReceiveDecodeMillis: Double = 0
         public var avgGapMillis: Double = 0
+        /// RFB security type negotiated at connect (raw value; 30 = Apple DH).
+        public var securityTypeRawValue: UInt8 = 0
+        /// Encoding of the last frame rectangle the server sent (raw value;
+        /// e.g. 16 = ZRLE, 7 = Tight, 5 = Hextile, 0 = Raw, 1 = CopyRect).
+        public var lastFrameEncodingRawValue: Int32 = 0
     }
 
     private let statsLock = NSLock()
@@ -70,10 +75,12 @@ public final class VNCConnection: NSObjectOrAnyObject {
 
     /// Folds one frame's timing into the running averages (EMA, so the HUD
     /// reads steadily). Called from the receive task.
-    func recordFrameTiming(receiveDecodeMillis: Double, gapMillis: Double?) {
+    func recordFrameTiming(receiveDecodeMillis: Double, gapMillis: Double?,
+                           frameEncodingRawValue: Int32?) {
         statsLock.lock(); defer { statsLock.unlock() }
         _stats.framesDecoded &+= 1
         _stats.continuousUpdatesActive = state.areContinuousUpdatesEnabled
+        if let frameEncodingRawValue { _stats.lastFrameEncodingRawValue = frameEncodingRawValue }
         let a = 0.2
         _stats.avgReceiveDecodeMillis = _stats.avgReceiveDecodeMillis == 0
             ? receiveDecodeMillis
@@ -83,6 +90,12 @@ public final class VNCConnection: NSObjectOrAnyObject {
                 ? gapMillis
                 : _stats.avgGapMillis * (1 - a) + gapMillis * a
         }
+    }
+
+    /// Records the negotiated RFB security type (called once at handshake).
+    func recordSecurityType(_ rawValue: UInt8) {
+        statsLock.lock(); defer { statsLock.unlock() }
+        _stats.securityTypeRawValue = rawValue
     }
 
 	// MARK: - Private Properties

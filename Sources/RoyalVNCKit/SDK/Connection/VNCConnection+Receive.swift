@@ -81,8 +81,13 @@ private extension VNCConnection {
 
 		let endNanos = DispatchTime.now().uptimeNanoseconds
 		lastFrameEndNanos = endNanos
+		// Encoding of the largest frame rect = what the server is really using.
+		let dominantEncoding = framebufferUpdate.rectangles
+			.max(by: { (Int($0.width) * Int($0.height)) < (Int($1.width) * Int($1.height)) })?
+			.encodingType
 		recordFrameTiming(receiveDecodeMillis: Double(endNanos &- startNanos) / 1_000_000,
-						  gapMillis: gapMillis)
+						  gapMillis: gapMillis,
+						  frameEncodingRawValue: dominantEncoding)
 
 		logger.logDebug("Received Framebuffer Update: \(framebufferUpdate)")
 
